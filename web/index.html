@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReelForge</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1e1e1e;
+      --border: #2a2a2a;
+      --text: #e8e8e8;
+      --text2: #888;
+      --accent: #E8FF00;
+      --accent-dim: rgba(232, 255, 0, 0.15);
+      --red: #ff4d4d;
+      --green: #4dff88;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    .health-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--text2);
+      display: inline-block;
+      margin-right: 6px;
+      transition: background 0.3s;
+    }
+    .health-dot.ok { background: var(--green); }
+    .health-dot.err { background: var(--red); }
+
+    .health-label {
+      font-size: 12px;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text2);
+      margin-bottom: 20px;
+    }
+
+    /* ── File picker ── */
+    .file-picker-label {
+      font-size: 12px;
+      color: var(--text2);
+      margin-bottom: 6px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .file-picker-label .input-dir {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 11px;
+      color: var(--text2);
+      opacity: 0.7;
+    }
+
+    .file-list {
+      list-style: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+
+    .file-list:empty::after {
+      content: "No video files in input directory";
+      display: block;
+      padding: 20px;
+      text-align: center;
+      color: var(--text2);
+      font-size: 13px;
+    }
+
+    .file-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+      font-size: 13px;
+    }
+
+    .file-list li:last-child { border-bottom: none; }
+    .file-list li:hover { background: var(--surface2); }
+
+    .file-list li.selected {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+
+    .file-list li .file-name {
+      color: var(--text);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      margin-right: 12px;
+    }
+
+    .file-list li .file-size {
+      color: var(--text2);
+      font-size: 12px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      white-space: nowrap;
+    }
+
+    .path-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .path-input {
+      flex: 1;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+
+    .path-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .path-input::placeholder { color: var(--text2); opacity: 0.5; }
+
+    .btn-refresh {
+      padding: 10px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text2);
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-refresh:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Options ── */
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--text2);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .field select {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .field select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--surface2);
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-track::after {
+      content: "";
+      position: absolute;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--text2);
+      top: 2px; left: 2px;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .toggle input:checked + .toggle-track {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+
+    .toggle input:checked + .toggle-track::after {
+      transform: translateX(18px);
+      background: var(--accent);
+    }
+
+    .toggle-label { font-size: 13px; color: var(--text2); }
+
+    /* ── Button ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover:not(:disabled) { opacity: 0.9; }
+
+    /* ── Progress ── */
+    .progress-section { display: none; }
+    .progress-section.visible { display: block; }
+
+    .progress-bar-track {
+      width: 100%;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .progress-bar-fill.error { background: var(--red); }
+    .progress-bar-fill.complete { background: var(--green); }
+
+    .progress-stage { font-size: 13px; color: var(--text2); }
+    .progress-stage strong { color: var(--text); text-transform: capitalize; }
+
+    .progress-message { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+    .progress-result {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .progress-result.done {
+      display: block;
+      background: rgba(77, 255, 136, 0.08);
+      border: 1px solid rgba(77, 255, 136, 0.2);
+      color: var(--green);
+    }
+
+    .progress-result.failed {
+      display: block;
+      background: rgba(255, 77, 77, 0.08);
+      border: 1px solid rgba(255, 77, 77, 0.2);
+      color: var(--red);
+    }
+
+    .progress-result a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .progress-result a:hover { text-decoration: underline; }
+
+    /* ── Jobs ── */
+    .jobs-list { list-style: none; }
+
+    .jobs-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .jobs-list li:last-child { border-bottom: none; }
+
+    .job-id {
+      font-family: "SF Mono", "Fira Code", monospace;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .job-stage {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .job-stage.complete { background: rgba(77, 255, 136, 0.12); color: var(--green); }
+    .job-stage.error { background: rgba(255, 77, 77, 0.12); color: var(--red); }
+    .job-stage.render, .job-stage.analyse, .job-stage.transcribe, .job-stage.ingest {
+      background: var(--accent-dim); color: var(--accent);
+    }
+
+    .job-meta { color: var(--text2); font-size: 12px; }
+
+    .job-download {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .job-download:hover { text-decoration: underline; }
+
+    .empty-state {
+      color: var(--text2);
+      font-size: 13px;
+      text-align: center;
+      padding: 24px 0;
+    }
+
+    @media (max-width: 600px) {
+      .options-grid { grid-template-columns: 1fr; }
+      .shell { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>Reel<span>Forge</span></h1>
+      <div class="health-label">
+        <span class="health-dot" id="healthDot"></span>
+        <span id="healthText">connecting...</span>
+      </div>
+    </header>
+
+    <!-- New Reel -->
+    <div class="card">
+      <h2>New Reel</h2>
+
+      <div class="file-picker-label">
+        <span>Select video</span>
+        <span class="input-dir" id="inputDirLabel"></span>
+      </div>
+      <ul class="file-list" id="fileList"></ul>
+
+      <div class="path-input-row">
+        <input type="text" class="path-input" id="pathInput" placeholder="Or type a full file path...">
+        <button class="btn-refresh" id="refreshBtn" title="Refresh file list">&#8635;</button>
+      </div>
+
+      <div class="options-grid">
+        <div class="field">
+          <label>Preset</label>
+          <select id="preset">
+            <option value="instagramReel">Instagram Reel (9:16)</option>
+            <option value="youtubeShort">YouTube Short (9:16)</option>
+            <option value="instagramSquare">Instagram Square (1:1)</option>
+            <option value="landscape">Landscape (16:9)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Caption Style</label>
+          <select id="captionStyle">
+            <option value="highlight">Highlight</option>
+            <option value="bounce">Bounce</option>
+            <option value="typewriter">Typewriter</option>
+            <option value="minimal">Minimal</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="noCuts">
+          <span class="toggle-track"></span>
+        </label>
+        <span class="toggle-label">Skip AI editing (captions only, no cuts)</span>
+      </div>
+
+      <button class="btn btn-primary" id="renderBtn" disabled>
+        Render Reel
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div class="card progress-section" id="progressSection">
+      <h2>Processing</h2>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-stage">
+        Stage: <strong id="progressStage">-</strong>
+        <span id="progressPct" style="float:right"></span>
+      </div>
+      <div class="progress-message" id="progressMsg"></div>
+      <div class="progress-result" id="progressResult"></div>
+    </div>
+
+    <!-- Jobs -->
+    <div class="card">
+      <h2>Recent Jobs</h2>
+      <ul class="jobs-list" id="jobsList">
+        <li class="empty-state">No jobs yet</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.origin;
+    let selectedPath = "";
+    let pollTimer = null;
+
+    const fileList = document.getElementById("fileList");
+    const pathInput = document.getElementById("pathInput");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const inputDirLabel = document.getElementById("inputDirLabel");
+    const renderBtn = document.getElementById("renderBtn");
+    const progressSection = document.getElementById("progressSection");
+    const progressFill = document.getElementById("progressFill");
+    const progressStage = document.getElementById("progressStage");
+    const progressPct = document.getElementById("progressPct");
+    const progressMsg = document.getElementById("progressMsg");
+    const progressResult = document.getElementById("progressResult");
+    const jobsList = document.getElementById("jobsList");
+    const healthDot = document.getElementById("healthDot");
+    const healthText = document.getElementById("healthText");
+
+    // ── Health ──
+    async function checkHealth() {
+      try {
+        const r = await fetch(`${API}/health`);
+        const d = await r.json();
+        healthDot.className = "health-dot ok";
+        healthText.textContent = `${d.activeJobs} active job${d.activeJobs !== 1 ? "s" : ""}`;
+      } catch {
+        healthDot.className = "health-dot err";
+        healthText.textContent = "offline";
+      }
+    }
+    checkHealth();
+    setInterval(checkHealth, 10000);
+
+    // ── File list ──
+    async function loadFiles() {
+      try {
+        const res = await fetch(`${API}/files`);
+        const data = await res.json();
+        inputDirLabel.textContent = data.inputDir;
+
+        if (data.files.length === 0) {
+          fileList.innerHTML = "";
+          return;
+        }
+
+        fileList.innerHTML = data.files.map((f) =>
+          `<li data-path="${f.path}">
+            <span class="file-name">${f.name}</span>
+            <span class="file-size">${f.sizeMb} MB</span>
+          </li>`
+        ).join("");
+
+        fileList.querySelectorAll("li").forEach((li) => {
+          li.addEventListener("click", () => {
+            fileList.querySelectorAll("li").forEach((l) => l.classList.remove("selected"));
+            li.classList.add("selected");
+            selectedPath = li.dataset.path;
+            pathInput.value = selectedPath;
+            renderBtn.disabled = false;
+          });
+        });
+      } catch {
+        fileList.innerHTML = "";
+      }
+    }
+    loadFiles();
+    refreshBtn.addEventListener("click", loadFiles);
+
+    // ── Manual path input ──
+    pathInput.addEventListener("input", () => {
+      selectedPath = pathInput.value.trim();
+      renderBtn.disabled = !selectedPath;
+      fileList.querySelectorAll("li").forEach((l) => {
+        l.classList.toggle("selected", l.dataset.path === selectedPath);
+      });
+    });
+
+    // ── Render ──
+    renderBtn.addEventListener("click", async () => {
+      if (!selectedPath) return;
+
+      renderBtn.disabled = true;
+      renderBtn.textContent = "Starting...";
+
+      try {
+        const res = await fetch(`${API}/render`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inputPath: selectedPath,
+            preset: document.getElementById("preset").value,
+            captionStyle: document.getElementById("captionStyle").value,
+            noCuts: document.getElementById("noCuts").checked,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Request failed");
+        }
+
+        const { jobId } = await res.json();
+        renderBtn.textContent = "Render Reel";
+
+        progressSection.classList.add("visible");
+        progressFill.style.width = "0%";
+        progressFill.className = "progress-bar-fill";
+        progressResult.className = "progress-result";
+        progressResult.style.display = "none";
+        startPolling(jobId);
+      } catch (err) {
+        alert(err.message);
+        renderBtn.disabled = false;
+        renderBtn.textContent = "Render Reel";
+      }
+    });
+
+    // ── Poll ──
+    function startPolling(jobId) {
+      if (pollTimer) clearInterval(pollTimer);
+
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`${API}/status/${jobId}`);
+          const job = await res.json();
+
+          progressFill.style.width = `${job.progress}%`;
+          progressStage.textContent = job.stage;
+          progressPct.textContent = `${job.progress}%`;
+          progressMsg.textContent = job.message;
+
+          if (job.stage === "complete") {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            progressFill.className = "progress-bar-fill complete";
+
+            const outName = job.outputPath.split("/").pop();
+            progressResult.className = "progress-result done";
+            progressResult.style.display = "block";
+            progressResult.innerHTML = `Done! <a href="${API}/output/${encodeURIComponent(outName)}" download>Download reel</a>`;
+
+            renderBtn.disabled = false;
+            refreshJobs();
+          }
+
+          if (job.stage === "error") {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            progressFill.className = "progress-bar-fill error";
+            progressFill.style.width = "100%";
+            progressResult.className = "progress-result failed";
+            progressResult.style.display = "block";
+            progressResult.textContent = `Error: ${job.error || job.message}`;
+            renderBtn.disabled = false;
+            refreshJobs();
+          }
+        } catch {
+          // keep polling
+        }
+      }, 1000);
+    }
+
+    // ── Jobs ──
+    async function refreshJobs() {
+      try {
+        const res = await fetch(`${API}/jobs`);
+        const jobs = await res.json();
+
+        if (jobs.length === 0) {
+          jobsList.innerHTML = '<li class="empty-state">No jobs yet</li>';
+          return;
+        }
+
+        jobsList.innerHTML = jobs.map((j) => {
+          const elapsed = j.completedAt
+            ? `${Math.round((j.completedAt - j.startedAt) / 1000)}s`
+            : `${Math.round((Date.now() - j.startedAt) / 1000)}s`;
+
+          const outName = j.outputPath ? j.outputPath.split("/").pop() : null;
+          const download = j.stage === "complete" && outName
+            ? `<a class="job-download" href="${API}/output/${encodeURIComponent(outName)}" download>Download</a>`
+            : "";
+
+          return `<li>
+            <span class="job-id">${j.id}</span>
+            <span class="job-stage ${j.stage}">${j.stage}</span>
+            <span class="job-meta">${elapsed}</span>
+            ${download}
+          </li>`;
+        }).join("");
+      } catch {}
+    }
+    refreshJobs();
+    setInterval(refreshJobs, 5000);
+  </script>
+</body>
+</html>

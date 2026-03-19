@@ -1,0 +1,37 @@
+{
+  "name": "reelforge",
+  "version": "1.0.0",
+  "description": "Drop a raw talking head video, get back a finished Instagram reel — captioned, trimmed, branded.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render",
+    "build": "remotion bundle",
+    "process": "tsx pipeline/process.ts",
+    "server": "tsx server/index.ts"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.437",
+    "@remotion/captions": "4.0.437",
+    "@remotion/cli": "4.0.437",
+    "@remotion/install-whisper-cpp": "4.0.437",
+    "@remotion/media-utils": "4.0.437",
+    "@remotion/renderer": "4.0.437",
+    "@remotion/zod-types": "4.0.437",
+    "@types/multer": "^2.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "groq-sdk": "^0.8.0",
+    "multer": "^2.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "4.0.437",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
