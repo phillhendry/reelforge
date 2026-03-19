@@ -30,7 +30,7 @@ import path from "path";
 import { probeVideo } from "./probe";
 import { transcribe } from "./transcribe";
 import { analyse } from "./analyse";
-import { buildCaptionPages } from "./captions";
+import { remapCaptionsToEdl, padEdlForPlayback, detectEmphasis } from "./captions";
 import { renderTalkingHead } from "./render";
 import { DEFAULT_BRAND, OUTPUT_PRESETS, type OutputPreset } from "../src/lib/brand";
 import type { TalkingHeadProps, BrandConfig } from "../src/types";
@@ -127,7 +127,7 @@ async function run() {
   // ── STAGE 2: Transcribe ──
   console.log("━━━ Stage 2/4: Transcribe ━━━");
   const transcript = await transcribe(inputPath, tempDir);
-  console.log(`  ✓ ${transcript.words.length} words transcribed`);
+  console.log(`  ✓ ${transcript.captions.length} words transcribed`);
   console.log(`  ✓ "${transcript.fullText.slice(0, 80)}..."`);
 
   if (debug) {
@@ -152,7 +152,7 @@ async function run() {
     };
     console.log("  ✓ No-cuts mode — keeping full video");
   } else {
-    edl = await analyse(transcript.words, transcript.fullText, metadata.durationMs);
+    edl = await analyse(transcript.captions, transcript.fullText, metadata.durationMs);
     const cutDuration = metadata.durationMs - edl.estimatedDurationMs;
     console.log(`  ✓ ${edl.keeps.length} segments to keep`);
     console.log(`  ✓ ${edl.cuts?.length || 0} segments to cut`);
@@ -169,9 +169,11 @@ async function run() {
   }
   console.log("");
 
-  // ── Build caption pages ──
-  const captionPages = buildCaptionPages(transcript.words);
-  console.log(`  ✓ ${captionPages.length} caption pages built`);
+  // ── Pad EDL for playback, remap captions against padded EDL, detect emphasis ──
+  const videoEdl = padEdlForPlayback(edl, metadata.durationMs);
+  const remappedCaptions = remapCaptionsToEdl(transcript.captions, videoEdl);
+  const emphasised = detectEmphasis(remappedCaptions);
+  console.log(`  ✓ ${emphasised.length} captions remapped (${emphasised.filter(c => c.emphasis !== "normal").length} emphasised)`);
   console.log("");
 
   // ── STAGE 4: Render ──
@@ -187,9 +189,8 @@ async function run() {
 
   const props: TalkingHeadProps = {
     sourceVideo: inputPath,
-    captions: transcript.words,
-    captionPages,
-    edl,
+    captions: emphasised,
+    edl: videoEdl,
     metadata,
     brand,
     outputWidth: preset.width,

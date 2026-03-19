@@ -3,128 +3,90 @@ import {
   AbsoluteFill,
   OffthreadVideo,
   Sequence,
+  useCurrentFrame,
   useVideoConfig,
-  Audio,
-  staticFile,
+  interpolate,
 } from "remotion";
-import { z } from "zod";
-import { AnimatedCaption } from "../../components/AnimatedCaption";
+import { createTikTokStyleCaptions } from "@remotion/captions";
+import type { Caption, TikTokPage } from "@remotion/captions";
+import { CaptionPageView } from "../../components/CaptionPageView";
 import { ProgressBar } from "../../components/ProgressBar";
 import { SafeArea } from "../../components/SafeArea";
-import type {
-  TalkingHeadProps,
-  CaptionPage,
-  CaptionWord,
-  EditSegment,
-  BrandConfig,
-} from "../../types";
+import type { TalkingHeadProps } from "../../types";
+
+/** Convert ms to frames consistently (always floor to avoid overrun) */
+const msToFrame = (ms: number, fps: number) => Math.floor((ms / 1000) * fps);
 
 /**
  * TalkingHead Composition
  *
- * The main composition. Takes a raw video and produces a finished reel.
- *
- * How it works:
- * 1. The EDL (edit decision list) defines which segments of the source
- *    video to keep. We render these as a sequence of <OffthreadVideo>
- *    clips, each playing a segment of the original file.
- *
- * 2. Captions are overlaid as animated word-by-word highlights.
- *    Their timestamps are remapped to account for the cuts.
- *
- * 3. The source video is shown full-frame. If it's landscape,
- *    we crop to center (or face-detect later). If portrait, it fills.
- *
- * 4. A subtle progress bar sits at the top.
+ * Takes a raw video and produces a finished reel using Remotion's
+ * native caption system.
  */
 export const TalkingHead: React.FC<TalkingHeadProps> = ({
   sourceVideo,
   captions,
-  captionPages,
   edl,
   metadata,
   brand,
   outputWidth,
   outputHeight,
 }) => {
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
+  const frame = useCurrentFrame();
 
-  // ── Build the timeline ──────────────────────────────────────
-  // Each "keep" segment becomes a Sequence. We need to track
-  // cumulative output time so we know where each segment starts
-  // in the rendered video.
+  // ── Build the video timeline from EDL keeps ────────────────
   const timeline = useMemo(() => {
     let outputOffsetMs = 0;
     return edl.keeps.map((segment) => {
       const durationMs = segment.endMs - segment.startMs;
+      const startFrame = msToFrame(outputOffsetMs, fps);
+      const endFrame = msToFrame(outputOffsetMs + durationMs, fps);
       const entry = {
         segment,
         outputStartMs: outputOffsetMs,
-        outputEndMs: outputOffsetMs + durationMs,
         durationMs,
-        startFrame: Math.round((outputOffsetMs / 1000) * fps),
-        durationFrames: Math.round((durationMs / 1000) * fps),
+        startFrame,
+        durationFrames: endFrame - startFrame,
       };
       outputOffsetMs += durationMs;
       return entry;
     });
   }, [edl.keeps, fps]);
 
-  // ── Remap captions to output timeline ───────────────────────
-  // Captions reference the SOURCE video timestamps. We need to
-  // shift them to match the output timeline (with cuts removed).
-  const remappedPages = useMemo(() => {
-    const remap = (sourceMs: number): number | null => {
-      let outputMs = 0;
-      for (const entry of timeline) {
-        if (
-          sourceMs >= entry.segment.startMs &&
-          sourceMs < entry.segment.endMs
-        ) {
-          return outputMs + (sourceMs - entry.segment.startMs);
-        }
-        outputMs += entry.durationMs;
+  // ── Build caption pages using Remotion's native grouping ───
+  const captionPages = useMemo(() => {
+    if (captions.length === 0) return [];
+    const { pages } = createTikTokStyleCaptions({
+      captions,
+      combineTokensWithinMilliseconds: 600,
+    });
+    return pages;
+  }, [captions]);
+
+  // ── Build emphasis map (token startMs → emphasis level) ────
+  // Captions may have an `emphasis` field from detectEmphasis()
+  const emphasisMap = useMemo(() => {
+    const map = new Map<number, "strong" | "moderate" | "normal">();
+    for (const cap of captions) {
+      const emphasis = (cap as Record<string, unknown>).emphasis as
+        | "strong"
+        | "moderate"
+        | "normal"
+        | undefined;
+      if (emphasis) {
+        map.set(cap.startMs, emphasis);
       }
-      return null;
-    };
+    }
+    return map;
+  }, [captions]);
 
-    return captionPages
-      .map((page) => {
-        const newStart = remap(page.startMs);
-        const newEnd = remap(page.endMs);
-        if (newStart === null || newEnd === null) return null;
-
-        const remappedWords = page.words
-          .map((w) => {
-            const ws = remap(w.startMs);
-            const we = remap(w.endMs);
-            if (ws === null || we === null) return null;
-            return { ...w, startMs: ws, endMs: we };
-          })
-          .filter(Boolean) as CaptionWord[];
-
-        if (remappedWords.length === 0) return null;
-
-        return {
-          ...page,
-          startMs: newStart,
-          endMs: newEnd,
-          words: remappedWords,
-        } as CaptionPage;
-      })
-      .filter(Boolean) as CaptionPage[];
-  }, [captionPages, timeline]);
-
-  // ── Compute video positioning ───────────────────────────────
-  // If the source is already portrait (9:16), it fills the frame.
-  // If landscape (16:9), we scale it to fill height and crop sides.
-  // If square, we scale to fill width and center vertically.
+  // ── Compute video positioning (fill frame, crop overflow) ──
   const videoStyle = useMemo((): React.CSSProperties => {
     const srcAspect = metadata.width / metadata.height;
     const outAspect = outputWidth / outputHeight;
 
     if (srcAspect > outAspect) {
-      // Source is wider than output — fill height, crop sides
       const scale = outputHeight / metadata.height;
       const scaledWidth = metadata.width * scale;
       return {
@@ -135,7 +97,6 @@ export const TalkingHead: React.FC<TalkingHeadProps> = ({
         left: (outputWidth - scaledWidth) / 2,
       };
     } else {
-      // Source is taller or same — fill width, crop top/bottom
       const scale = outputWidth / metadata.width;
       const scaledHeight = metadata.height * scale;
       return {
@@ -148,47 +109,79 @@ export const TalkingHead: React.FC<TalkingHeadProps> = ({
     }
   }, [metadata, outputWidth, outputHeight]);
 
+  // ── Fade out over the last 0.5s ────────────────────────────
+  const fadeOutFrames = Math.round(fps * 0.5);
+  const fadeOutStart = durationInFrames - fadeOutFrames;
+  const fadeOutOpacity = interpolate(
+    frame,
+    [fadeOutStart, durationInFrames],
+    [1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
   return (
     <AbsoluteFill style={{ backgroundColor: "#000000" }}>
-      {/* ── Video segments ── */}
-      {timeline.map((entry, index) => (
-        <Sequence
-          key={index}
-          from={entry.startFrame}
-          durationInFrames={entry.durationFrames}
-        >
-          <AbsoluteFill style={{ overflow: "hidden" }}>
-            <OffthreadVideo
-              src={sourceVideo}
-              startFrom={Math.round((entry.segment.startMs / 1000) * fps)}
-              style={videoStyle}
-            />
-          </AbsoluteFill>
-        </Sequence>
-      ))}
+      {/* ── Everything that fades out ── */}
+      <AbsoluteFill style={{ opacity: fadeOutOpacity }}>
+        {/* ── Video segments ── */}
+        {timeline.map((entry, index) => (
+          <Sequence
+            key={index}
+            from={entry.startFrame}
+            durationInFrames={entry.durationFrames}
+          >
+            <AbsoluteFill style={{ overflow: "hidden" }}>
+              <OffthreadVideo
+                src={sourceVideo}
+                startFrom={msToFrame(entry.segment.startMs, fps)}
+                style={videoStyle}
+              />
+            </AbsoluteFill>
+          </Sequence>
+        ))}
 
-      {/* ── Gradient overlay for caption readability ── */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "40%",
-          background:
-            "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)",
-          pointerEvents: "none",
-          zIndex: 10,
-        }}
-      />
+        {/* ── Gradient overlay for caption readability ── */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "40%",
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)",
+            pointerEvents: "none",
+            zIndex: 10,
+          }}
+        />
 
-      {/* ── Captions ── */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 20 }}>
-        <AnimatedCaption pages={remappedPages} brand={brand} />
-      </div>
+        {/* ── Caption pages — each as its own Sequence ── */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 20 }}>
+          {captionPages.map((page, index) => {
+            const nextPage = captionPages[index + 1] ?? null;
+            const startFrame = msToFrame(page.startMs, fps);
+            const endFrame = nextPage
+              ? msToFrame(nextPage.startMs, fps)
+              : startFrame + msToFrame(Math.min(page.durationMs ?? 1500, 1500), fps);
+            const durationInFrames = endFrame - startFrame;
 
-      {/* ── Progress bar ── */}
-      <ProgressBar brand={brand} />
+            if (durationInFrames <= 0) return null;
+
+            return (
+              <Sequence
+                key={index}
+                from={startFrame}
+                durationInFrames={durationInFrames}
+              >
+                <CaptionPageView page={page} brand={brand} emphasisMap={emphasisMap} />
+              </Sequence>
+            );
+          })}
+        </div>
+
+        {/* ── Progress bar ── */}
+        <ProgressBar brand={brand} />
+      </AbsoluteFill>
 
       {/* ── Safe area debug overlay ── */}
       <SafeArea visible={false} />

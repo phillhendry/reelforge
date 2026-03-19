@@ -3,11 +3,11 @@
  * ReelForge Render Server
  *
  * A simple Express server that exposes the pipeline as an HTTP API.
- * This is what n8n, your Cowork skill, or any automation calls.
  *
  * Endpoints:
  *   POST /render/talking-head   — full pipeline: transcribe → analyse → render
  *   POST /render/carousel       — carousel slides → animated reel
+ *   POST /render                — simplified render (used by Web UI)
  *   GET  /status/:jobId         — check render progress
  *   GET  /health                — health check
  *
@@ -22,7 +22,7 @@ import path from "path";
 import { probeVideo } from "../pipeline/probe";
 import { transcribe } from "../pipeline/transcribe";
 import { analyse } from "../pipeline/analyse";
-import { buildCaptionPages } from "../pipeline/captions";
+import { remapCaptionsToEdl, padEdlForPlayback, detectEmphasis } from "../pipeline/captions";
 import { renderTalkingHead, renderCarouselReel } from "../pipeline/render";
 import { DEFAULT_BRAND, OUTPUT_PRESETS } from "../src/lib/brand";
 import type {
@@ -130,6 +130,7 @@ app.post("/render/talking-head", async (req, res) => {
 
   const jobId = `th_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   createJob(jobId);
+  processedFiles.add(path.basename(resolvedInput));
 
   // Respond immediately with job ID
   res.json({ jobId, status: "accepted" });
@@ -175,11 +176,11 @@ async function processTalkingHead(
   });
   const transcript = await transcribe(inputPath, TEMP_DIR);
 
-  // Stage 3: Analyse
+  // Stage 3: Analyse (or skip)
   updateJob(jobId, {
     stage: "analyse",
     progress: 40,
-    message: "AI editor analysing...",
+    message: noCuts ? "Skipping AI editing..." : "AI editor analysing...",
   });
 
   let edl;
@@ -195,13 +196,20 @@ async function processTalkingHead(
     };
   } else {
     edl = await analyse(
-      transcript.words,
+      transcript.captions,
       transcript.fullText,
       metadata.durationMs
     );
   }
 
-  const captionPages = buildCaptionPages(transcript.words);
+  // Pad EDL for natural playback, then remap captions against the padded EDL
+  const videoEdl = padEdlForPlayback(edl, metadata.durationMs);
+  const remappedCaptions = remapCaptionsToEdl(transcript.captions, videoEdl);
+  const emphasised = detectEmphasis(remappedCaptions);
+
+  console.log(
+    `  → ${transcript.captions.length} source captions → ${emphasised.length} remapped (${emphasised.filter(c => c.emphasis !== "normal").length} emphasised)`
+  );
 
   // Stage 4: Render
   updateJob(jobId, { stage: "render", progress: 55, message: "Rendering..." });
@@ -214,9 +222,8 @@ async function processTalkingHead(
 
   const props: TalkingHeadProps = {
     sourceVideo: inputPath,
-    captions: transcript.words,
-    captionPages,
-    edl,
+    captions: emphasised,
+    edl: videoEdl,
     metadata,
     brand,
     outputWidth: presetConfig.width,
@@ -322,7 +329,7 @@ app.get("/files", (_req, res) => {
   }
 });
 
-// ── Start render (local file path) ──────────────────────
+// ── Start render (local file path — used by Web UI) ─────
 
 app.post("/render", (req, res) => {
   const {
@@ -399,11 +406,17 @@ fs.watch(INPUT_DIR, (eventType, filename) => {
     const filePath = path.join(INPUT_DIR, filename);
     if (!fs.existsSync(filePath)) return;
 
+    // Re-check — a UI render may have started during the debounce
+    if (processedFiles.has(filename)) return;
+
     // Check file size is stable (finished writing)
     const size1 = fs.statSync(filePath).size;
     await new Promise((r) => setTimeout(r, 2000));
     const size2 = fs.statSync(filePath).size;
     if (size1 !== size2) return; // Still writing
+
+    // Final check before processing
+    if (processedFiles.has(filename)) return;
 
     processedFiles.add(filename);
     console.log(`\n📁 New file detected: ${filename}`);

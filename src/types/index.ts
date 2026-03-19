@@ -3,21 +3,9 @@
 // The data contracts between every stage of the pipeline.
 // ============================================================
 
-/** A single captioned word with precise timing */
-export interface CaptionWord {
-  text: string;
-  startMs: number;
-  endMs: number;
-  confidence: number;
-}
-
-/** A page of captions (group of words shown together) */
-export interface CaptionPage {
-  text: string;
-  startMs: number;
-  endMs: number;
-  words: CaptionWord[];
-}
+// Re-export Remotion's native caption types — these are the source of truth
+// for all caption data flowing through the pipeline.
+export type { Caption, TikTokPage, TikTokToken } from "@remotion/captions";
 
 /** A segment of the original video to keep */
 export interface EditSegment {
@@ -79,10 +67,8 @@ export interface BrandConfig {
 export interface TalkingHeadProps {
   /** Path to the source video file */
   sourceVideo: string;
-  /** Word-level caption data */
-  captions: CaptionWord[];
-  /** Caption pages for display */
-  captionPages: CaptionPage[];
+  /** Remotion Caption[] — word-level timestamps from transcription */
+  captions: import("@remotion/captions").Caption[];
   /** Edit decision list — which segments to keep */
   edl: EditDecisionList;
   /** Source video metadata */

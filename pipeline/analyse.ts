@@ -12,25 +12,31 @@
  * Returns an EditDecisionList that drives the Remotion composition.
  */
 
-import type { CaptionWord, EditDecisionList } from "../src/types";
+import type { Caption } from "@remotion/captions";
+import type { EditDecisionList } from "../src/types";
 
 const SYSTEM_PROMPT = `You are an expert short-form video editor for Instagram Reels. You receive a transcript with word-level timestamps from a raw talking head video.
 
 Your job is to produce an Edit Decision List (EDL) that transforms the raw footage into a tight, engaging reel.
 
 RULES:
-1. KEEP all substantive content — the speaker's actual points, stories, insights.
-2. CUT the following aggressively:
-   - Long pauses (>800ms gaps between words)
-   - Filler words and sounds: "um", "uh", "like" (when used as filler), "you know", "basically", "so" (at start of sentences as filler), "right" (as filler)
-   - False starts — when the speaker starts a sentence then restarts
-   - Repeated phrases — when they say the same thing twice
-   - Dead air at the beginning and end of the recording
-   - Throat clearing, coughing, "anyway", "where was I"
-3. HOOK — identify the single most compelling 3-8 second segment that would make someone stop scrolling. If it's not at the start, note it so we can potentially reorder.
-4. Keep the final result between 15-90 seconds. If the good content is longer, keep it all. If it's shorter, that's fine.
-5. Merge adjacent keep segments that are <200ms apart (don't create jarring micro-cuts).
-6. Leave ~100ms of breathing room before and after each keep segment for natural transitions.
+1. KEEP all substantive content — the speaker's points, stories, insights.
+2. CUT:
+   - Pauses longer than 800ms between words
+   - Dead air at the start (before first word) and end (after last word) of the recording
+   - Clear false starts where the speaker restarts the same sentence
+   - Repeated phrases where the speaker says the same thing twice
+   - Standalone filler clusters ("um", "uh", "like uh") that aren't part of a flowing sentence
+3. DO NOT cut:
+   - Single filler words embedded in a flowing sentence (e.g. "I like thought about it") — removing these creates unnatural jumps
+   - Short pauses under 800ms — these are natural speech rhythm
+4. HOOK — identify the most compelling 3-8 second segment. Note it but do NOT reorder.
+5. Target 15-90 seconds. If good content runs longer, keep it.
+6. IMPORTANT — word boundary alignment:
+   - Start each keep segment at the EXACT startMs of the first word in that segment.
+   - End each keep segment at the EXACT endMs of the last word in that segment.
+   - Do NOT add padding — we handle that in post-processing.
+7. The last keep segment should include the speaker's final word.
 
 OUTPUT FORMAT — respond with ONLY valid JSON, no markdown:
 {
@@ -50,7 +56,7 @@ Reasons for keeps: "content", "hook", "punchline", "transition"
 Reasons for cuts: "silence", "filler", "false_start", "repeat", "dead_air"`;
 
 export async function analyse(
-  words: CaptionWord[],
+  captions: Caption[],
   fullText: string,
   videoDurationMs: number
 ): Promise<EditDecisionList> {
@@ -62,10 +68,10 @@ export async function analyse(
   }
 
   // Build the transcript with timestamps for Claude
-  const timestampedTranscript = words
+  const timestampedTranscript = captions
     .map(
       (w) =>
-        `[${formatMs(w.startMs)}-${formatMs(w.endMs)}] ${w.text}`
+        `[${formatMs(w.startMs)}-${formatMs(w.endMs)}] ${w.text.trim()}`
     )
     .join("\n");
 
@@ -79,7 +85,7 @@ ${timestampedTranscript}
 FULL TEXT:
 ${fullText}
 
-Analyse this and produce the EDL. Remember: respond with ONLY valid JSON.`;
+Analyse this and produce the EDL. Remember: respond with ONLY valid JSON. Use exact word-boundary timestamps from the transcript above.`;
 
   console.log("  → Sending to Claude for analysis...");
 
@@ -130,23 +136,46 @@ Analyse this and produce the EDL. Remember: respond with ONLY valid JSON.`;
   // Sort keeps by start time
   edl.keeps.sort((a, b) => a.startMs - b.startMs);
 
-  // Merge adjacent keeps that are very close (<200ms gap)
+  // Merge adjacent keeps that overlap or are very close (<250ms gap)
   const merged = [edl.keeps[0]];
   for (let i = 1; i < edl.keeps.length; i++) {
     const prev = merged[merged.length - 1];
     const curr = edl.keeps[i];
-    if (curr.startMs - prev.endMs < 200) {
-      prev.endMs = curr.endMs;
+    if (curr.startMs - prev.endMs < 250) {
+      prev.endMs = Math.max(prev.endMs, curr.endMs);
     } else {
       merged.push(curr);
     }
   }
   edl.keeps = merged;
 
+  // Clamp to video bounds
+  edl.keeps[0].startMs = Math.max(0, edl.keeps[0].startMs);
+  edl.keeps[edl.keeps.length - 1].endMs = Math.min(
+    videoDurationMs,
+    edl.keeps[edl.keeps.length - 1].endMs
+  );
+
+  // Ensure the last segment extends a bit past the final word for a natural tail
+  const lastKeep = edl.keeps[edl.keeps.length - 1];
+  const lastCaption = [...captions]
+    .reverse()
+    .find((w) => w.startMs < lastKeep.endMs);
+  if (lastCaption) {
+    lastKeep.endMs = Math.min(
+      videoDurationMs,
+      Math.max(lastKeep.endMs, lastCaption.endMs + 400)
+    );
+  }
+
   // Recalculate duration
   edl.estimatedDurationMs = edl.keeps.reduce(
     (sum, seg) => sum + (seg.endMs - seg.startMs),
     0
+  );
+
+  console.log(
+    `  → EDL: ${edl.keeps.length} segments, ~${Math.round(edl.estimatedDurationMs / 1000)}s output`
   );
 
   return edl;

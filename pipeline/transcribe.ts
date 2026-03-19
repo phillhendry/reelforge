@@ -2,8 +2,8 @@
  * Transcription Module
  *
  * Uses Groq's Whisper API for blazing fast transcription with
- * word-level timestamps. Falls back to local Whisper.cpp if
- * Groq is unavailable.
+ * word-level timestamps. Returns Remotion-native Caption[] so we
+ * can feed it straight into createTikTokStyleCaptions().
  *
  * Groq is the best option here because:
  * - It's ~50x faster than real-time
@@ -14,10 +14,10 @@
 
 import fs from "fs";
 import path from "path";
-import type { CaptionWord } from "../src/types";
+import type { Caption } from "@remotion/captions";
 
 interface TranscriptionResult {
-  words: CaptionWord[];
+  captions: Caption[];
   fullText: string;
   language: string;
   durationMs: number;
@@ -26,6 +26,7 @@ interface TranscriptionResult {
 /**
  * Transcribe a video/audio file using Groq's Whisper API.
  * Extracts audio first via ffmpeg, then sends to Groq.
+ * Returns Remotion-native Caption[] with leading whitespace preserved.
  */
 export async function transcribe(
   inputPath: string,
@@ -39,7 +40,7 @@ export async function transcribe(
   }
 
   // ── Step 1: Extract audio as WAV ──
-  const audioPath = path.join(tempDir, "audio.wav");
+  const audioPath = path.join(tempDir, `audio_${Date.now()}.wav`);
   console.log("  → Extracting audio...");
 
   const { execSync } = await import("child_process");
@@ -79,23 +80,34 @@ export async function transcribe(
 
   const result = await response.json();
 
-  // ── Step 3: Convert to our CaptionWord format ──
-  const words: CaptionWord[] = (result.words || []).map(
-    (w: { word: string; start: number; end: number }) => ({
-      text: w.word,
-      startMs: Math.round(w.start * 1000),
-      endMs: Math.round(w.end * 1000),
-      confidence: 1,
-    })
+  // ── Step 3: Convert to Remotion's Caption format ──
+  // CRITICAL: text must include leading whitespace for proper rendering.
+  // Remotion uses whiteSpace: 'pre' and relies on the space being in the text.
+  const captions: Caption[] = (result.words || []).map(
+    (w: { word: string; start: number; end: number }, i: number) => {
+      const startMs = Math.round(w.start * 1000);
+      const endMs = Math.round(w.end * 1000);
+      // First word has no leading space; all others get one
+      const text = i === 0 ? w.word.trim() : ` ${w.word.trim()}`;
+      return {
+        text,
+        startMs,
+        endMs,
+        timestampMs: startMs + Math.round((endMs - startMs) / 2),
+        confidence: 1,
+      };
+    }
   );
 
   // Clean up temp audio
-  fs.unlinkSync(audioPath);
+  try { fs.unlinkSync(audioPath); } catch {}
+
+  console.log(`  → Transcribed ${captions.length} words`);
 
   return {
-    words,
+    captions,
     fullText: result.text || "",
     language: result.language || "en",
-    durationMs: words.length > 0 ? words[words.length - 1].endMs : 0,
+    durationMs: captions.length > 0 ? captions[captions.length - 1].endMs : 0,
   };
 }

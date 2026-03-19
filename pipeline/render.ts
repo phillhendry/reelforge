@@ -46,13 +46,15 @@ export async function renderTalkingHead(
 
   const bundleLocation = await getBundle();
 
-  // Calculate total output duration from EDL
+  // Calculate total output duration from EDL + fade-out tail
   const totalDurationMs = props.edl.keeps.reduce(
     (sum, seg) => sum + (seg.endMs - seg.startMs),
     0
   );
+  // Add 0.5s for fade-out so the video doesn't end abruptly
+  const fadeOutMs = 500;
   const durationInFrames = Math.ceil(
-    (totalDurationMs / 1000) * props.outputFps
+    ((totalDurationMs + fadeOutMs) / 1000) * props.outputFps
   );
 
   // Copy video into the bundle directory so Remotion's server can serve it.

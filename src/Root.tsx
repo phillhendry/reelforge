@@ -2,7 +2,7 @@ import React from "react";
 import { Composition } from "remotion";
 import { TalkingHead } from "./compositions/TalkingHead";
 import { CarouselReel } from "./compositions/CarouselReel";
-import type { TalkingHeadProps, CarouselReelProps } from "./types";
+import type { TalkingHeadProps, CarouselReelProps, Caption } from "./types";
 import { DEFAULT_BRAND, OUTPUT_PRESETS } from "./lib/brand";
 
 /**
@@ -14,30 +14,20 @@ import { DEFAULT_BRAND, OUTPUT_PRESETS } from "./lib/brand";
  * The defaults here are just for the Remotion Studio preview.
  */
 export const RemotionRoot: React.FC = () => {
-  // ── Demo data for Studio preview ──
-  const demoCaption = {
-    text: "This is a demo caption",
-    startMs: 0,
-    endMs: 3000,
-    confidence: 1,
-  };
-
-  const demoCaptionPage = {
-    text: "This is a demo",
-    startMs: 0,
-    endMs: 3000,
-    words: [
-      { text: "This", startMs: 0, endMs: 500, confidence: 1 },
-      { text: "is", startMs: 500, endMs: 800, confidence: 1 },
-      { text: "a", startMs: 800, endMs: 1000, confidence: 1 },
-      { text: "demo", startMs: 1000, endMs: 1500, confidence: 1 },
-    ],
-  };
+  // ── Demo captions in Remotion's Caption format ──
+  const demoCaptions: Caption[] = [
+    { text: "This", startMs: 0, endMs: 500, timestampMs: 250, confidence: 1 },
+    { text: " is", startMs: 500, endMs: 800, timestampMs: 650, confidence: 1 },
+    { text: " a", startMs: 800, endMs: 1000, timestampMs: 900, confidence: 1 },
+    { text: " demo", startMs: 1000, endMs: 1500, timestampMs: 1250, confidence: 1 },
+    { text: " caption", startMs: 1500, endMs: 2200, timestampMs: 1850, confidence: 1 },
+    { text: " for", startMs: 2200, endMs: 2500, timestampMs: 2350, confidence: 1 },
+    { text: " preview", startMs: 2500, endMs: 3000, timestampMs: 2750, confidence: 1 },
+  ];
 
   const defaultTalkingHeadProps: TalkingHeadProps = {
     sourceVideo: "",
-    captions: [demoCaption],
-    captionPages: [demoCaptionPage],
+    captions: demoCaptions,
     edl: {
       keeps: [{ startMs: 0, endMs: 30000, reason: "content" }],
       cuts: [],
