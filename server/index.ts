@@ -474,6 +474,33 @@ app.get("/jobs", (_req, res) => {
   res.json(list);
 });
 
+// ── Clear jobs ───────────────────────────────────────────
+
+app.delete("/jobs", (_req, res) => {
+  // Clear only finished jobs (complete or error)
+  for (const [id, job] of jobs) {
+    if (job.stage === "complete" || job.stage === "error") {
+      jobs.delete(id);
+    }
+  }
+  res.json({ cleared: true });
+});
+
+app.delete("/jobs/:jobId", (req, res) => {
+  const job = jobs.get(req.params.jobId);
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+  // Only allow clearing finished jobs
+  if (job.stage !== "complete" && job.stage !== "error") {
+    res.status(400).json({ error: "Cannot clear an active job — cancel it first" });
+    return;
+  }
+  jobs.delete(req.params.jobId);
+  res.json({ cleared: req.params.jobId });
+});
+
 // ── Serve output files for download ──────────────────────
 
 app.get("/output/:filename", (req, res) => {

@@ -233,6 +233,18 @@
     }
     .job-download:hover { text-decoration: underline; }
 
+    .btn-clear-all {
+      background: none; border: none; color: var(--text2); font-size: 11px;
+      cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: color 0.15s;
+    }
+    .btn-clear-all:hover { color: var(--text); }
+
+    .job-dismiss {
+      background: none; border: none; color: var(--text2); font-size: 14px;
+      cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.15s;
+    }
+    .job-dismiss:hover { color: var(--text); }
+
     .empty-state {
       color: var(--text2); font-size: 13px; text-align: center; padding: 24px 0;
     }
@@ -336,7 +348,10 @@
 
     <!-- Jobs -->
     <div class="card">
-      <h2>Jobs</h2>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h2 style="margin-bottom:0">Jobs</h2>
+        <button class="btn-clear-all" id="clearAllBtn">Clear finished</button>
+      </div>
       <ul class="jobs-list" id="jobsList">
         <li class="empty-state">No jobs yet</li>
       </ul>
@@ -478,6 +493,21 @@
       } catch {}
     }
 
+    // ── Clear jobs ──
+    async function clearJob(jobId) {
+      try {
+        await fetch(`${API}/jobs/${jobId}`, { method: "DELETE" });
+        refreshJobs();
+      } catch {}
+    }
+
+    document.getElementById("clearAllBtn").addEventListener("click", async () => {
+      try {
+        await fetch(`${API}/jobs`, { method: "DELETE" });
+        refreshJobs();
+      } catch {}
+    });
+
     // ── Jobs — renders all progress inline ──
     async function refreshJobs() {
       try {
@@ -515,6 +545,9 @@
           }
           if (j.stage === "complete" && outName) {
             actions.push(`<a class="job-download" href="${API}/output/${encodeURIComponent(outName)}" download>Download</a>`);
+          }
+          if (!isActive) {
+            actions.push(`<button class="job-dismiss" onclick="clearJob('${j.id}')" title="Dismiss">&times;</button>`);
           }
 
           const message = j.stage === "error"
