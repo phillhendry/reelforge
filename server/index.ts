@@ -92,6 +92,7 @@ app.get("/health", (_req, res) => {
     service: "reelforge",
     uptime: process.uptime(),
     activeJobs: jobs.size,
+    autoWatch: autoWatchEnabled,
   });
 });
 
@@ -136,16 +137,20 @@ app.post("/render/talking-head", async (req, res) => {
   res.json({ jobId, status: "accepted" });
 
   // Process in background
-  processTalkingHead(jobId, resolvedInput, preset, captionStyle, noCuts, brandOverrides).catch(
+  const controller = new AbortController();
+  abortControllers.set(jobId, controller);
+  processTalkingHead(jobId, resolvedInput, preset, captionStyle, noCuts, brandOverrides, controller.signal).catch(
     (err) => {
-      console.error(`Job ${jobId} failed:`, err);
-      updateJob(jobId, {
-        stage: "error",
-        message: err.message,
-        error: err.message,
-      });
+      if (err.name !== "AbortError") {
+        console.error(`Job ${jobId} failed:`, err);
+        updateJob(jobId, {
+          stage: "error",
+          message: err.message,
+          error: err.message,
+        });
+      }
     }
-  );
+  ).finally(() => abortControllers.delete(jobId));
 });
 
 async function processTalkingHead(
@@ -154,8 +159,14 @@ async function processTalkingHead(
   presetName: string,
   captionStyle: BrandConfig["captionStyle"],
   noCuts: boolean,
-  brandOverrides: Partial<BrandConfig>
+  brandOverrides: Partial<BrandConfig>,
+  signal?: AbortSignal
 ) {
+  const checkCancelled = () => {
+    if (signal?.aborted) {
+      throw new DOMException("Job cancelled", "AbortError");
+    }
+  };
   const presetConfig =
     OUTPUT_PRESETS[presetName as keyof typeof OUTPUT_PRESETS] ||
     OUTPUT_PRESETS.instagramReel;
@@ -167,6 +178,7 @@ async function processTalkingHead(
   // Stage 1: Probe
   updateJob(jobId, { stage: "ingest", progress: 5, message: "Probing video..." });
   const metadata = probeVideo(inputPath);
+  checkCancelled();
 
   // Stage 2: Transcribe
   updateJob(jobId, {
@@ -175,6 +187,7 @@ async function processTalkingHead(
     message: "Transcribing audio...",
   });
   const transcript = await transcribe(inputPath, TEMP_DIR);
+  checkCancelled();
 
   // Stage 3: Analyse (or skip)
   updateJob(jobId, {
@@ -210,6 +223,8 @@ async function processTalkingHead(
   console.log(
     `  → ${transcript.captions.length} source captions → ${emphasised.length} remapped (${emphasised.filter(c => c.emphasis !== "normal").length} emphasised)`
   );
+
+  checkCancelled();
 
   // Stage 4: Render
   updateJob(jobId, { stage: "render", progress: 55, message: "Rendering..." });
@@ -306,6 +321,51 @@ app.post("/render/carousel", async (req, res) => {
 });
 
 const processedFiles = new Set<string>();
+const abortControllers = new Map<string, AbortController>();
+let autoWatchEnabled = true;
+
+// ── Cancel a running job ─────────────────────────────────
+
+app.post("/cancel/:jobId", (req, res) => {
+  const jobId = req.params.jobId;
+  const job = jobs.get(jobId);
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+  if (job.stage === "complete" || job.stage === "error") {
+    res.status(400).json({ error: "Job already finished" });
+    return;
+  }
+
+  const controller = abortControllers.get(jobId);
+  if (controller) {
+    controller.abort();
+    abortControllers.delete(jobId);
+  }
+
+  updateJob(jobId, {
+    stage: "error",
+    message: "Cancelled by user",
+    error: "Cancelled by user",
+  });
+
+  console.log(`⛔ Job ${jobId} cancelled`);
+  res.json({ jobId, status: "cancelled" });
+});
+
+// ── Toggle auto-watch ────────────────────────────────────
+
+app.post("/auto-watch", (req, res) => {
+  const { enabled } = req.body;
+  autoWatchEnabled = enabled !== false;
+  console.log(`📁 Auto-watch ${autoWatchEnabled ? "enabled" : "paused"}`);
+  res.json({ autoWatch: autoWatchEnabled });
+});
+
+app.get("/auto-watch", (_req, res) => {
+  res.json({ autoWatch: autoWatchEnabled });
+});
 
 // ── Browse input directory ───────────────────────────────
 
@@ -354,18 +414,22 @@ app.post("/render", (req, res) => {
   createJob(jobId);
   processedFiles.add(path.basename(resolvedInput));
 
+  const controller = new AbortController();
+  abortControllers.set(jobId, controller);
   res.json({ jobId, status: "accepted" });
 
-  processTalkingHead(jobId, resolvedInput, preset, captionStyle, noCuts, {}).catch(
+  processTalkingHead(jobId, resolvedInput, preset, captionStyle, noCuts, {}, controller.signal).catch(
     (err) => {
-      console.error(`Job ${jobId} failed:`, err);
-      updateJob(jobId, {
-        stage: "error",
-        message: err.message,
-        error: err.message,
-      });
+      if (err.name !== "AbortError") {
+        console.error(`Job ${jobId} failed:`, err);
+        updateJob(jobId, {
+          stage: "error",
+          message: err.message,
+          error: err.message,
+        });
+      }
     }
-  );
+  ).finally(() => abortControllers.delete(jobId));
 });
 
 // ── List all jobs ────────────────────────────────────────
@@ -394,6 +458,7 @@ app.get("/output/:filename", (req, res) => {
 let watchDebounce: NodeJS.Timeout | null = null;
 
 fs.watch(INPUT_DIR, (eventType, filename) => {
+  if (!autoWatchEnabled) return;
   if (!filename || eventType !== "rename") return;
   if (processedFiles.has(filename)) return;
 
