@@ -96,6 +96,16 @@ function updateJob(
   if (job) Object.assign(job, update);
 }
 
+// ── Open folders in Finder ────────────────────────────────
+
+app.post("/open-folder/:which", (req, res) => {
+  const dir = req.params.which === "output" ? OUTPUT_DIR : INPUT_DIR;
+  import("child_process").then(({ exec }) => {
+    exec(`open "${dir}"`);
+  });
+  res.json({ opened: dir });
+});
+
 // ── Health check ──────────────────────────────────────────
 
 app.get("/health", (_req, res) => {

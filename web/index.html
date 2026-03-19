@@ -132,6 +132,16 @@
     }
     .btn-refresh:hover { border-color: var(--accent); color: var(--text); }
 
+    .folder-btns {
+      display: flex; gap: 8px; margin-top: 10px;
+    }
+    .folder-btn {
+      flex: 1; padding: 6px 10px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 6px; color: var(--text2);
+      font-size: 11px; font-weight: 500; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .folder-btn:hover { border-color: var(--accent); color: var(--text); }
+
     /* ── Options ── */
     .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
     .field label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
@@ -304,6 +314,11 @@
         <button class="btn-refresh" id="refreshBtn" title="Refresh file list">&#8635;</button>
       </div>
 
+      <div class="folder-btns">
+        <button class="folder-btn" onclick="openFolder('input')">Open Input Folder</button>
+        <button class="folder-btn" onclick="openFolder('output')">Open Output Folder</button>
+      </div>
+
       <div class="options-grid">
         <div class="field">
           <label>Preset</label>
@@ -406,6 +421,11 @@
         });
       } catch {}
     });
+
+    // ── Open folder ──
+    async function openFolder(which) {
+      try { await fetch(`${API}/open-folder/${which}`, { method: "POST" }); } catch {}
+    }
 
     // ── File list ──
     async function loadFiles() {
