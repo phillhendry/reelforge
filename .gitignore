@@ -6,3 +6,5 @@ input/
 .env
 *.tsbuildinfo
 .remotion/
+src-tauri/target/
+src-tauri/gen/
