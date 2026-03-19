@@ -6,8 +6,8 @@
     "studio": "remotion studio",
     "render": "remotion render",
     "build": "remotion bundle",
-    "process": "tsx pipeline/process.ts",
-    "server": "tsx server/index.ts"
+    "process": "npx tsx pipeline/process.ts",
+    "server": "npx tsx server/index.ts"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.437",
