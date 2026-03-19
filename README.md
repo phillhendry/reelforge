@@ -242,4 +242,4 @@ Output:
 
 MIT. Remotion is free for individuals and companies up to 3 people.
 
-Built by Phill.
+Built by Phill. Blame Claude.
