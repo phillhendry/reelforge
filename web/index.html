@@ -41,12 +41,7 @@
       margin-bottom: 40px;
     }
 
-    header h1 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }
-
+    header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
     header h1 span { color: var(--accent); }
 
     .health-dot {
@@ -86,336 +81,157 @@
 
     /* ── File picker ── */
     .file-picker-label {
-      font-size: 12px;
-      color: var(--text2);
-      margin-bottom: 6px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      font-size: 12px; color: var(--text2); margin-bottom: 6px;
+      font-weight: 500; display: flex; align-items: center; justify-content: space-between;
     }
-
     .file-picker-label .input-dir {
-      font-family: "SF Mono", "Fira Code", monospace;
-      font-size: 11px;
-      color: var(--text2);
-      opacity: 0.7;
+      font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: var(--text2); opacity: 0.7;
     }
 
     .file-list {
-      list-style: none;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      max-height: 220px;
-      overflow-y: auto;
-      margin-bottom: 12px;
+      list-style: none; border: 1px solid var(--border); border-radius: 8px;
+      max-height: 220px; overflow-y: auto; margin-bottom: 12px;
     }
-
     .file-list:empty::after {
       content: "No video files in input directory";
-      display: block;
-      padding: 20px;
-      text-align: center;
-      color: var(--text2);
-      font-size: 13px;
+      display: block; padding: 20px; text-align: center; color: var(--text2); font-size: 13px;
     }
-
     .file-list li {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      cursor: pointer;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s;
-      font-size: 13px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border);
+      transition: background 0.15s; font-size: 13px;
     }
-
     .file-list li:last-child { border-bottom: none; }
     .file-list li:hover { background: var(--surface2); }
-
-    .file-list li.selected {
-      background: var(--accent-dim);
-      border-color: var(--accent);
-    }
-
+    .file-list li.selected { background: var(--accent-dim); border-color: var(--accent); }
     .file-list li .file-name {
-      color: var(--text);
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
-      margin-right: 12px;
+      color: var(--text); font-weight: 500; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 12px;
     }
-
     .file-list li .file-size {
-      color: var(--text2);
-      font-size: 12px;
-      font-family: "SF Mono", "Fira Code", monospace;
-      white-space: nowrap;
+      color: var(--text2); font-size: 12px;
+      font-family: "SF Mono", "Fira Code", monospace; white-space: nowrap;
     }
 
-    .path-input-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
+    .path-input-row { display: flex; gap: 8px; align-items: center; }
     .path-input {
-      flex: 1;
-      padding: 10px 12px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-size: 13px;
-      font-family: "SF Mono", "Fira Code", monospace;
+      flex: 1; padding: 10px 12px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+      font-size: 13px; font-family: "SF Mono", "Fira Code", monospace;
     }
-
-    .path-input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
+    .path-input:focus { outline: none; border-color: var(--accent); }
     .path-input::placeholder { color: var(--text2); opacity: 0.5; }
 
     .btn-refresh {
-      padding: 10px 14px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text2);
-      font-size: 14px;
-      cursor: pointer;
-      transition: border-color 0.2s;
-      flex-shrink: 0;
+      padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text2); font-size: 14px; cursor: pointer;
+      transition: border-color 0.2s; flex-shrink: 0;
     }
-
     .btn-refresh:hover { border-color: var(--accent); color: var(--text); }
 
     /* ── Options ── */
-    .options-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 20px;
-    }
-
-    .field label {
-      display: block;
-      font-size: 12px;
-      color: var(--text2);
-      margin-bottom: 6px;
-      font-weight: 500;
-    }
-
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+    .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
     .field select {
-      width: 100%;
-      padding: 10px 12px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-size: 14px;
-      appearance: none;
-      cursor: pointer;
+      width: 100%; padding: 10px 12px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+      font-size: 14px; appearance: none; cursor: pointer;
     }
+    .field select:focus { outline: none; border-color: var(--accent); }
 
-    .field select:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 16px;
-    }
-
-    .toggle {
-      position: relative;
-      width: 40px;
-      height: 22px;
-    }
-
+    .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+    .toggle { position: relative; width: 40px; height: 22px; }
     .toggle input { opacity: 0; width: 0; height: 0; }
-
     .toggle-track {
-      position: absolute;
-      inset: 0;
-      background: var(--surface2);
-      border-radius: 11px;
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.2s;
+      position: absolute; inset: 0; background: var(--surface2);
+      border-radius: 11px; border: 1px solid var(--border); cursor: pointer; transition: background 0.2s;
     }
-
     .toggle-track::after {
-      content: "";
-      position: absolute;
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      background: var(--text2);
-      top: 2px; left: 2px;
-      transition: transform 0.2s, background 0.2s;
+      content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+      background: var(--text2); top: 2px; left: 2px; transition: transform 0.2s, background 0.2s;
     }
-
-    .toggle input:checked + .toggle-track {
-      background: var(--accent-dim);
-      border-color: var(--accent);
-    }
-
-    .toggle input:checked + .toggle-track::after {
-      transform: translateX(18px);
-      background: var(--accent);
-    }
-
+    .toggle input:checked + .toggle-track { background: var(--accent-dim); border-color: var(--accent); }
+    .toggle input:checked + .toggle-track::after { transform: translateX(18px); background: var(--accent); }
     .toggle-label { font-size: 13px; color: var(--text2); }
 
     /* ── Button ── */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 28px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      width: 100%;
-      margin-top: 20px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 28px; border: none; border-radius: 8px; font-size: 14px;
+      font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+      width: 100%; margin-top: 20px;
     }
-
     .btn:active { transform: scale(0.98); }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
     .btn-primary { background: var(--accent); color: #000; }
     .btn-primary:hover:not(:disabled) { opacity: 0.9; }
 
-    .btn-cancel {
-      background: transparent;
-      border: 1px solid var(--red);
-      color: var(--red);
-      margin-top: 12px;
-    }
-    .btn-cancel:hover:not(:disabled) { background: rgba(255, 77, 77, 0.1); }
-
-    /* ── Progress ── */
-    .progress-section { display: none; }
-    .progress-section.visible { display: block; }
-
-    .progress-bar-track {
-      width: 100%;
-      height: 6px;
-      background: var(--surface2);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 3px;
-      width: 0%;
-      transition: width 0.4s ease;
-    }
-
-    .progress-bar-fill.error { background: var(--red); }
-    .progress-bar-fill.complete { background: var(--green); }
-
-    .progress-stage { font-size: 13px; color: var(--text2); }
-    .progress-stage strong { color: var(--text); text-transform: capitalize; }
-
-    .progress-message { font-size: 13px; color: var(--text2); margin-top: 4px; }
-
-    .progress-result {
-      margin-top: 16px;
-      padding: 16px;
-      border-radius: 8px;
-      font-size: 13px;
-      display: none;
-    }
-
-    .progress-result.done {
-      display: block;
-      background: rgba(77, 255, 136, 0.08);
-      border: 1px solid rgba(77, 255, 136, 0.2);
-      color: var(--green);
-    }
-
-    .progress-result.failed {
-      display: block;
-      background: rgba(255, 77, 77, 0.08);
-      border: 1px solid rgba(255, 77, 77, 0.2);
-      color: var(--red);
-    }
-
-    .progress-result a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .progress-result a:hover { text-decoration: underline; }
-
-    /* ── Jobs ── */
+    /* ── Jobs list ── */
     .jobs-list { list-style: none; }
 
-    .jobs-list li {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 0;
+    .job-item {
+      padding: 16px 0;
       border-bottom: 1px solid var(--border);
-      font-size: 13px;
     }
+    .job-item:last-child { border-bottom: none; }
 
-    .jobs-list li:last-child { border-bottom: none; }
+    .job-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 4px;
+    }
 
     .job-id {
       font-family: "SF Mono", "Fira Code", monospace;
-      color: var(--text);
-      font-size: 12px;
+      color: var(--text); font-size: 12px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      flex: 1; margin-right: 12px;
     }
 
     .job-stage {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+      flex-shrink: 0;
     }
-
     .job-stage.complete { background: rgba(77, 255, 136, 0.12); color: var(--green); }
     .job-stage.error { background: rgba(255, 77, 77, 0.12); color: var(--red); }
     .job-stage.render, .job-stage.analyse, .job-stage.transcribe, .job-stage.ingest {
       background: var(--accent-dim); color: var(--accent);
     }
 
-    .job-meta { color: var(--text2); font-size: 12px; }
+    .job-progress-track {
+      width: 100%; height: 4px; background: var(--surface2);
+      border-radius: 2px; overflow: hidden; margin: 8px 0 6px;
+    }
+    .job-progress-fill {
+      height: 100%; border-radius: 2px; transition: width 0.4s ease;
+      background: var(--accent);
+    }
+    .job-progress-fill.complete { background: var(--green); }
+    .job-progress-fill.error { background: var(--red); }
 
-    .job-download {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 12px;
+    .job-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: var(--text2);
     }
 
+    .job-message { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .job-actions { display: flex; gap: 12px; align-items: center; flex-shrink: 0; margin-left: 12px; }
+
+    .job-cancel {
+      background: none; border: 1px solid var(--red); color: var(--red);
+      padding: 2px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .job-cancel:hover { background: rgba(255, 77, 77, 0.1); }
+
+    .job-download {
+      color: var(--accent); text-decoration: none; font-weight: 600; font-size: 12px;
+    }
     .job-download:hover { text-decoration: underline; }
 
     .empty-state {
-      color: var(--text2);
-      font-size: 13px;
-      text-align: center;
-      padding: 24px 0;
+      color: var(--text2); font-size: 13px; text-align: center; padding: 24px 0;
     }
 
     @media (max-width: 600px) {
@@ -491,26 +307,9 @@
       </button>
     </div>
 
-    <!-- Progress -->
-    <div class="card progress-section" id="progressSection">
-      <h2>Processing</h2>
-      <div class="progress-bar-track">
-        <div class="progress-bar-fill" id="progressFill"></div>
-      </div>
-      <div class="progress-stage">
-        Stage: <strong id="progressStage">-</strong>
-        <span id="progressPct" style="float:right"></span>
-      </div>
-      <div class="progress-message" id="progressMsg"></div>
-      <button class="btn btn-cancel" id="cancelBtn" style="display:none">
-        Cancel Render
-      </button>
-      <div class="progress-result" id="progressResult"></div>
-    </div>
-
     <!-- Jobs -->
     <div class="card">
-      <h2>Recent Jobs</h2>
+      <h2>Jobs</h2>
       <ul class="jobs-list" id="jobsList">
         <li class="empty-state">No jobs yet</li>
       </ul>
@@ -520,25 +319,16 @@
   <script>
     const API = window.location.origin;
     let selectedPath = "";
-    let pollTimer = null;
 
     const fileList = document.getElementById("fileList");
     const pathInput = document.getElementById("pathInput");
     const refreshBtn = document.getElementById("refreshBtn");
     const inputDirLabel = document.getElementById("inputDirLabel");
     const renderBtn = document.getElementById("renderBtn");
-    const progressSection = document.getElementById("progressSection");
-    const progressFill = document.getElementById("progressFill");
-    const progressStage = document.getElementById("progressStage");
-    const progressPct = document.getElementById("progressPct");
-    const progressMsg = document.getElementById("progressMsg");
-    const progressResult = document.getElementById("progressResult");
     const jobsList = document.getElementById("jobsList");
     const healthDot = document.getElementById("healthDot");
     const healthText = document.getElementById("healthText");
-    const cancelBtn = document.getElementById("cancelBtn");
     const autoWatchToggle = document.getElementById("autoWatch");
-    let currentJobId = null;
 
     // ── Health ──
     async function checkHealth() {
@@ -572,16 +362,6 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ enabled: autoWatchToggle.checked }),
         });
-      } catch {}
-    });
-
-    // ── Cancel ──
-    cancelBtn.addEventListener("click", async () => {
-      if (!currentJobId) return;
-      cancelBtn.disabled = true;
-      cancelBtn.textContent = "Cancelling...";
-      try {
-        await fetch(`${API}/cancel/${currentJobId}`, { method: "POST" });
       } catch {}
     });
 
@@ -620,7 +400,6 @@
     loadFiles();
     refreshBtn.addEventListener("click", loadFiles);
 
-    // ── Manual path input ──
     pathInput.addEventListener("input", () => {
       selectedPath = pathInput.value.trim();
       renderBtn.disabled = !selectedPath;
@@ -629,7 +408,7 @@
       });
     });
 
-    // ── Render ──
+    // ── Render — always available, queues a new job ──
     renderBtn.addEventListener("click", async () => {
       if (!selectedPath) return;
 
@@ -653,19 +432,10 @@
           throw new Error(err.error || "Request failed");
         }
 
-        const { jobId } = await res.json();
-        currentJobId = jobId;
+        // Job accepted — re-enable immediately for next render
+        renderBtn.disabled = false;
         renderBtn.textContent = "Render Reel";
-
-        progressSection.classList.add("visible");
-        progressFill.style.width = "0%";
-        progressFill.className = "progress-bar-fill";
-        progressResult.className = "progress-result";
-        progressResult.style.display = "none";
-        cancelBtn.style.display = "block";
-        cancelBtn.disabled = false;
-        cancelBtn.textContent = "Cancel Render";
-        startPolling(jobId);
+        refreshJobs();
       } catch (err) {
         alert(err.message);
         renderBtn.disabled = false;
@@ -673,56 +443,15 @@
       }
     });
 
-    // ── Poll ──
-    function startPolling(jobId) {
-      if (pollTimer) clearInterval(pollTimer);
-
-      pollTimer = setInterval(async () => {
-        try {
-          const res = await fetch(`${API}/status/${jobId}`);
-          const job = await res.json();
-
-          progressFill.style.width = `${job.progress}%`;
-          progressStage.textContent = job.stage;
-          progressPct.textContent = `${job.progress}%`;
-          progressMsg.textContent = job.message;
-
-          if (job.stage === "complete") {
-            clearInterval(pollTimer);
-            pollTimer = null;
-            currentJobId = null;
-            cancelBtn.style.display = "none";
-            progressFill.className = "progress-bar-fill complete";
-
-            const outName = job.outputPath.split("/").pop();
-            progressResult.className = "progress-result done";
-            progressResult.style.display = "block";
-            progressResult.innerHTML = `Done! <a href="${API}/output/${encodeURIComponent(outName)}" download>Download reel</a>`;
-
-            renderBtn.disabled = false;
-            refreshJobs();
-          }
-
-          if (job.stage === "error") {
-            clearInterval(pollTimer);
-            pollTimer = null;
-            currentJobId = null;
-            cancelBtn.style.display = "none";
-            progressFill.className = "progress-bar-fill error";
-            progressFill.style.width = "100%";
-            progressResult.className = "progress-result failed";
-            progressResult.style.display = "block";
-            progressResult.textContent = `Error: ${job.error || job.message}`;
-            renderBtn.disabled = false;
-            refreshJobs();
-          }
-        } catch {
-          // keep polling
-        }
-      }, 1000);
+    // ── Cancel a job ──
+    async function cancelJob(jobId) {
+      try {
+        await fetch(`${API}/cancel/${jobId}`, { method: "POST" });
+        refreshJobs();
+      } catch {}
     }
 
-    // ── Jobs ──
+    // ── Jobs — renders all progress inline ──
     async function refreshJobs() {
       try {
         const res = await fetch(`${API}/jobs`);
@@ -738,22 +467,52 @@
             ? `${Math.round((j.completedAt - j.startedAt) / 1000)}s`
             : `${Math.round((Date.now() - j.startedAt) / 1000)}s`;
 
+          const isActive = !["complete", "error"].includes(j.stage);
           const outName = j.outputPath ? j.outputPath.split("/").pop() : null;
-          const download = j.stage === "complete" && outName
-            ? `<a class="job-download" href="${API}/output/${encodeURIComponent(outName)}" download>Download</a>`
-            : "";
 
-          return `<li>
-            <span class="job-id">${j.id}</span>
-            <span class="job-stage ${j.stage}">${j.stage}</span>
-            <span class="job-meta">${elapsed}</span>
-            ${download}
+          const progressBar = isActive
+            ? `<div class="job-progress-track">
+                <div class="job-progress-fill" style="width:${j.progress}%"></div>
+              </div>`
+            : j.stage === "complete"
+              ? `<div class="job-progress-track">
+                  <div class="job-progress-fill complete" style="width:100%"></div>
+                </div>`
+              : `<div class="job-progress-track">
+                  <div class="job-progress-fill error" style="width:100%"></div>
+                </div>`;
+
+          const actions = [];
+          if (isActive) {
+            actions.push(`<button class="job-cancel" onclick="cancelJob('${j.id}')">Cancel</button>`);
+          }
+          if (j.stage === "complete" && outName) {
+            actions.push(`<a class="job-download" href="${API}/output/${encodeURIComponent(outName)}" download>Download</a>`);
+          }
+
+          const message = j.stage === "error"
+            ? `<span style="color:var(--red)">${j.error || j.message}</span>`
+            : j.message || "";
+
+          return `<li class="job-item">
+            <div class="job-header">
+              <span class="job-id">${j.id}</span>
+              <span class="job-stage ${j.stage}">${j.stage}</span>
+            </div>
+            ${progressBar}
+            <div class="job-footer">
+              <span class="job-message">${message}</span>
+              <span class="job-actions">
+                <span>${elapsed}</span>
+                ${actions.join("")}
+              </span>
+            </div>
           </li>`;
         }).join("");
       } catch {}
     }
     refreshJobs();
-    setInterval(refreshJobs, 5000);
+    setInterval(refreshJobs, 1500);
   </script>
 </body>
 </html>

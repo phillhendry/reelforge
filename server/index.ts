@@ -338,6 +338,25 @@ const processedFiles = new Set<string>();
 const abortControllers = new Map<string, AbortController>();
 let autoWatchEnabled = true;
 
+// ── Concurrency limiter for auto-watch ───────────────────
+const MAX_CONCURRENT_AUTO = 2;
+let activeAutoJobs = 0;
+const autoQueue: Array<() => void> = [];
+
+function runAutoJob(fn: () => Promise<void>) {
+  if (activeAutoJobs >= MAX_CONCURRENT_AUTO) {
+    console.log(`  ⏳ Auto-queue: ${autoQueue.length + 1} waiting (${activeAutoJobs} active)`);
+    autoQueue.push(() => runAutoJob(fn));
+    return;
+  }
+  activeAutoJobs++;
+  fn().finally(() => {
+    activeAutoJobs--;
+    const next = autoQueue.shift();
+    if (next) next();
+  });
+}
+
 // ── Cancel a running job ─────────────────────────────────
 
 app.post("/cancel/:jobId", (req, res) => {
@@ -469,7 +488,7 @@ app.get("/output/:filename", (req, res) => {
 
 // ── File watcher (auto-process dropped files) ─────────────
 
-let watchDebounce: NodeJS.Timeout | null = null;
+const watchDebounces = new Map<string, NodeJS.Timeout>();
 
 fs.watch(INPUT_DIR, (eventType, filename) => {
   if (!autoWatchEnabled) return;
@@ -479,41 +498,43 @@ fs.watch(INPUT_DIR, (eventType, filename) => {
   const ext = path.extname(filename).toLowerCase();
   if (![".mp4", ".mov", ".webm", ".mkv"].includes(ext)) return;
 
-  // Debounce to let the file finish writing
-  if (watchDebounce) clearTimeout(watchDebounce);
-  watchDebounce = setTimeout(async () => {
+  // Per-file debounce so multiple dropped files each get processed
+  if (watchDebounces.has(filename)) clearTimeout(watchDebounces.get(filename)!);
+  watchDebounces.set(filename, setTimeout(async () => {
+    watchDebounces.delete(filename);
     const filePath = path.join(INPUT_DIR, filename);
     if (!fs.existsSync(filePath)) return;
-
-    // Re-check — a UI render may have started during the debounce
     if (processedFiles.has(filename)) return;
 
     // Check file size is stable (finished writing)
     const size1 = fs.statSync(filePath).size;
     await new Promise((r) => setTimeout(r, 2000));
     const size2 = fs.statSync(filePath).size;
-    if (size1 !== size2) return; // Still writing
-
-    // Final check before processing
+    if (size1 !== size2) return;
     if (processedFiles.has(filename)) return;
 
     processedFiles.add(filename);
     console.log(`\n📁 New file detected: ${filename}`);
 
-    const jobId = `auto_${Date.now()}`;
+    const jobId = `auto_${Date.now()}_${filename.replace(/[^a-z0-9]/gi, "").slice(0, 8)}`;
     createJob(jobId);
 
-    processTalkingHead(
-      jobId,
-      filePath,
-      "instagramReel",
-      "highlight",
-      false,
-      {}
-    ).catch((err) => {
-      console.error(`Auto-process failed for ${filename}:`, err.message);
+    // Queue through concurrency limiter (max 2 auto jobs at once)
+    runAutoJob(async () => {
+      const controller = new AbortController();
+      abortControllers.set(jobId, controller);
+      try {
+        await processTalkingHead(jobId, filePath, "instagramReel", "highlight", false, {}, controller.signal);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== "AbortError") {
+          console.error(`Auto-process failed for ${filename}:`, err.message);
+          updateJob(jobId, { stage: "error", message: err.message, error: err.message });
+        }
+      } finally {
+        abortControllers.delete(jobId);
+      }
     });
-  }, 3000);
+  }, 3000));
 });
 
 // ── Error handler (always return JSON, never HTML) ───────
