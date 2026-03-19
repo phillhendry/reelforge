@@ -97,12 +97,20 @@ fs.mkdirSync(outputDir, { recursive: true });
 
 // ── GO ──────────────────────────────────────────────────────
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 50)
+    .replace(/-$/, "") || "reel";
+}
+
 async function run() {
   const startTime = Date.now();
-  const baseName = path.basename(inputPath, path.extname(inputPath));
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const outputPath =
-    customOutput || path.join(outputDir, `${baseName}_reel_${timestamp}.mp4`);
 
   console.log(`
 ╔══════════════════════════════════════════════╗
@@ -110,7 +118,6 @@ async function run() {
 ╚══════════════════════════════════════════════╝
 `);
   console.log(`  Input:   ${inputPath}`);
-  console.log(`  Output:  ${outputPath}`);
   console.log(`  Preset:  ${presetName} (${preset.width}×${preset.height})`);
   console.log(`  Style:   ${captionStyle}`);
   console.log(`  Mode:    ${noCuts ? "Captions only" : "Full edit + captions"}`);
@@ -131,7 +138,7 @@ async function run() {
   console.log(`  ✓ "${transcript.fullText.slice(0, 80)}..."`);
 
   if (debug) {
-    const debugPath = path.join(tempDir, `${baseName}_transcript.json`);
+    const debugPath = path.join(tempDir, `debug_transcript_${timestamp}.json`);
     fs.writeFileSync(debugPath, JSON.stringify(transcript, null, 2));
     console.log(`  → Debug: saved transcript to ${debugPath}`);
   }
@@ -163,11 +170,17 @@ async function run() {
   }
 
   if (debug) {
-    const debugPath = path.join(tempDir, `${baseName}_edl.json`);
+    const debugPath = path.join(tempDir, `debug_edl_${timestamp}.json`);
     fs.writeFileSync(debugPath, JSON.stringify(edl, null, 2));
     console.log(`  → Debug: saved EDL to ${debugPath}`);
   }
   console.log("");
+
+  // Generate output filename from content
+  const slug = slugify(edl.summary || transcript.fullText.slice(0, 60));
+  const outputPath =
+    customOutput || path.join(outputDir, `${slug}_${timestamp}.mp4`);
+  console.log(`  Output:  ${outputPath}`);
 
   // ── Pad EDL for playback, remap captions against padded EDL, detect emphasis ──
   const videoEdl = padEdlForPlayback(edl, metadata.durationMs);

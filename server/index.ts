@@ -35,6 +35,18 @@ import type {
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
+/** Turn a content summary into a short, filesystem-safe slug */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 50)
+    .replace(/-$/, "") || "reel";
+}
+
 const PORT = parseInt(process.env.PORT || "3100");
 const INPUT_DIR = path.resolve(process.env.INPUT_DIR || "./input");
 const OUTPUT_DIR = path.resolve(process.env.OUTPUT_DIR || "./output");
@@ -171,9 +183,7 @@ async function processTalkingHead(
     OUTPUT_PRESETS[presetName as keyof typeof OUTPUT_PRESETS] ||
     OUTPUT_PRESETS.instagramReel;
 
-  const baseName = path.basename(inputPath, path.extname(inputPath));
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const outputPath = path.join(OUTPUT_DIR, `${baseName}_reel_${timestamp}.mp4`);
 
   // Stage 1: Probe
   updateJob(jobId, { stage: "ingest", progress: 5, message: "Probing video..." });
@@ -214,6 +224,10 @@ async function processTalkingHead(
       metadata.durationMs
     );
   }
+
+  // Generate output filename from content summary
+  const slug = slugify(edl.summary || transcript.fullText.slice(0, 60));
+  const outputPath = path.join(OUTPUT_DIR, `${slug}_${timestamp}.mp4`);
 
   // Pad EDL for natural playback, then remap captions against the padded EDL
   const videoEdl = padEdlForPlayback(edl, metadata.durationMs);
